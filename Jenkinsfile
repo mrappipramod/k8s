@@ -1,38 +1,33 @@
-peline {
+pipeline {
     agent any
-    environment {
-        IMAGE_NAME = "hello-k8s"
-    }
 
     stages {
-        stage('Clone Repo') {
+        stage('Build') {
             steps {
-                git 'https://github.com/YOUR_USERNAME/hello-k8s.git'
+                echo 'Building the Docker image...'
+                sh 'podman build -t hello-k8s .'
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Load to Minikube') {
             steps {
-                sh 'podman build -t $IMAGE_NAME:latest .'
-            }
-        }
-
-        stage('Load Image into Minikube') {
-            steps {
-                sh 'minikube image load $IMAGE_NAME:latest'
+                echo 'Pushing image to Minikube...'
+                sh 'minikube image load hello-k8s'
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
+                echo 'Deploying to Kubernetes...'
                 sh 'kubectl apply -f deployment.yaml'
             }
         }
-    }
 
-    post {
-        success {
-            echo "✅ Deployed to K8s successfully!"
+        stage('Access App') {
+            steps {
+                echo 'Exposing service...'
+                sh 'minikube service hello-k8s --url'
+            }
         }
     }
 }
